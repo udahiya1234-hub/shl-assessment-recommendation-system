@@ -1,19 +1,29 @@
 # SHL Assessment Recommendation System Requirements
 # Python 3.9+
+# Streamlit Cloud Compatible (CPU-only, no GPU/CUDA)
 
 # Core Data Processing
 pandas==2.0.3
 numpy==1.24.3
 
-# Machine Learning & Embeddings
+# Machine Learning & Embeddings (CPU only)
 sentence-transformers==2.2.2
 torch==2.0.1
 
-# Retrieval & Similarity Search
+# Retrieval & Similarity Search (CPU only)
 faiss-cpu==1.7.4
 
 # Web Application
-streamlit==1.28.1
+streamlit==1.52.2
 
 # Utilities
 python-dotenv==1.0.0
+
+# ============================================================================
+# IMPORTANT NOTES:
+# - faiss-cpu: CPU-only version, compatible with Streamlit Cloud Linux
+# - No GPU packages (no torch-cuda, no tensorflow-gpu)
+# - All packages are open-source and free
+# - No API keys or external dependencies required
+# ============================================================================
+

@@ -74,32 +74,30 @@ class DataLoader:
         Returns:
             Cleaned dataframe
         """
-        # Strip whitespace from column names
+        # Strip whitespace from column names - CRITICAL for Streamlit Cloud
         df.columns = df.columns.str.strip()
 
         logger.info(f"Columns after stripping: {list(df.columns)}")
 
-        # Check if required columns exist
-        missing_cols = [col for col in required_columns if col not in df.columns]
-        if missing_cols:
-            logger.warning(f"Missing columns: {missing_cols}. Available: {list(df.columns)}")
-            # Try case-insensitive matching
-            df_cols_lower = {col.lower(): col for col in df.columns}
-            for req_col in required_columns:
+        # Check if required columns exist (case-insensitive)
+        df_cols_lower = {col.lower(): col for col in df.columns}
+        
+        for req_col in required_columns:
+            if req_col not in df.columns:
+                # Try case-insensitive match
                 if req_col.lower() in df_cols_lower:
                     actual_col = df_cols_lower[req_col.lower()]
-                    if actual_col != req_col:
-                        df.rename(columns={actual_col: req_col}, inplace=True)
-                        logger.info(f"Renamed '{actual_col}' → '{req_col}'")
+                    df.rename(columns={actual_col: req_col}, inplace=True)
+                    logger.info(f"Renamed '{actual_col}' → '{req_col}'")
 
-        # Validate columns
+        # Final validation
         final_missing = [col for col in required_columns if col not in df.columns]
         if final_missing:
             raise ValueError(
                 f"Required columns {final_missing} not found. Available: {list(df.columns)}"
             )
 
-        # Strip whitespace from all text columns
+        # Strip whitespace from all text columns - CRITICAL for Streamlit Cloud
         for col in df.columns:
             if df[col].dtype == "object":
                 df[col] = df[col].astype(str).str.strip()

@@ -8,9 +8,19 @@ import logging
 import os
 import re
 from typing import List, Tuple, Dict, Optional
-import faiss
+import sys
 
-# Handle both direct and package imports
+# FAISS compatibility: use faiss-cpu for Streamlit Cloud (Linux)
+try:
+    import faiss
+except ImportError:
+    # Provide helpful error message
+    logging.error(
+        "FAISS not installed. Install with: pip install faiss-cpu"
+    )
+    raise
+
+# Handle imports for both direct and package execution
 try:
     from src.embeddings import EmbeddingGenerator
 except ImportError:
@@ -124,6 +134,7 @@ class HybridRetriever:
     def build_index(self, queries: List[str], assessments: List[str]) -> None:
         """
         Build FAISS index from assessment descriptions.
+        Compatible with both Windows and Linux (Streamlit Cloud).
 
         Args:
             queries: List of training queries (for context, not used directly)
@@ -136,23 +147,29 @@ class HybridRetriever:
             logger.error("No assessments provided for indexing")
             raise ValueError("Assessments list cannot be empty")
 
-        logger.info(f"Building index for {len(assessments)} assessments")
+        logger.info(f"Building FAISS index for {len(assessments)} assessments")
 
-        # Generate embeddings for assessments
-        self.assessment_embeddings = self.embedding_generator.encode_batch(
-            assessments,
-            batch_size=32,
-            show_progress_bar=True
-        )
+        try:
+            # Generate embeddings for assessments
+            self.assessment_embeddings = self.embedding_generator.encode_batch(
+                assessments,
+                batch_size=32,
+                show_progress_bar=True
+            )
 
-        # Create FAISS index
-        embedding_dim = self.assessment_embeddings.shape[1]
-        self.index = faiss.IndexFlatL2(embedding_dim)
-        self.index.add(self.assessment_embeddings.astype(np.float32))
+            # Create FAISS index - use IndexFlatL2 for exact search
+            # This is the most compatible approach across platforms
+            embedding_dim = self.assessment_embeddings.shape[1]
+            self.index = faiss.IndexFlatL2(embedding_dim)
+            self.index.add(self.assessment_embeddings.astype(np.float32))
 
-        self.assessments = assessments
+            self.assessments = assessments
 
-        logger.info(f"✓ FAISS index built with {len(assessments)} assessments")
+            logger.info(f"✓ FAISS index built with {len(assessments)} assessments")
+
+        except Exception as e:
+            logger.error(f"Failed to build FAISS index: {e}", exc_info=True)
+            raise RuntimeError(f"FAISS index building failed: {str(e)}")
 
     def retrieve(
         self,
@@ -248,22 +265,37 @@ class HybridRetriever:
     def load_index(self, input_dir: str = "models/faiss_index") -> None:
         """
         Load FAISS index from disk.
+        Cross-platform compatible (Windows and Linux/Streamlit Cloud).
 
         Args:
             input_dir: Directory containing saved index
         """
-        index_path = os.path.join(input_dir, "faiss_index.bin")
-        assessments_path = os.path.join(input_dir, "assessments.npy")
+        try:
+            index_path = os.path.join(input_dir, "faiss_index.bin")
+            assessments_path = os.path.join(input_dir, "assessments.npy")
 
-        if not os.path.exists(index_path) or not os.path.exists(assessments_path):
-            logger.error(f"Index files not found in {input_dir}")
-            raise FileNotFoundError(f"Index files not found in {input_dir}")
+            if not os.path.exists(index_path):
+                raise FileNotFoundError(
+                    f"FAISS index not found at {index_path}. "
+                    f"Run: python src/retriever.py to build index"
+                )
+            
+            if not os.path.exists(assessments_path):
+                raise FileNotFoundError(
+                    f"Assessments file not found at {assessments_path}. "
+                    f"Run: python src/retriever.py to build index"
+                )
 
-        self.index = faiss.read_index(index_path)
-        self.assessments = list(np.load(assessments_path, allow_pickle=True))
+            # Load index safely
+            self.index = faiss.read_index(index_path)
+            self.assessments = list(np.load(assessments_path, allow_pickle=True))
 
-        logger.info(f"✓ Index loaded from {index_path}")
-        logger.info(f"✓ Assessments loaded: {len(self.assessments)} items")
+            logger.info(f"✓ Index loaded from {index_path}")
+            logger.info(f"✓ Assessments loaded: {len(self.assessments)} items")
+
+        except Exception as e:
+            logger.error(f"Failed to load FAISS index: {e}", exc_info=True)
+            raise RuntimeError(f"Could not load FAISS index: {str(e)}")
 
 
 if __name__ == "__main__":
