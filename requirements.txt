@@ -1,0 +1,19 @@
+# SHL Assessment Recommendation System Requirements
+# Python 3.9+
+
+# Core Data Processing
+pandas==2.0.3
+numpy==1.24.3
+
+# Machine Learning & Embeddings
+sentence-transformers==2.2.2
+torch==2.0.1
+
+# Retrieval & Similarity Search
+faiss-cpu==1.7.4
+
+# Web Application
+streamlit==1.28.1
+
+# Utilities
+python-dotenv==1.0.0
