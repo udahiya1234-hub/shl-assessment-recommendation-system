@@ -31,7 +31,7 @@ st.set_page_config(
 )
 
 # Disable markdown warnings
-st.set_option('logger.level', 'error')
+
 
 # Import modules safely
 try:
