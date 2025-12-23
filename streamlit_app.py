@@ -11,6 +11,8 @@ import sys
 import logging
 from pathlib import Path
 
+
+
 # Configure absolute path for cross-platform compatibility
 PROJECT_ROOT = Path(__file__).parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -33,14 +35,20 @@ st.set_page_config(
 # Disable markdown warnings
 
 
-# Import modules safely
+# Import modules safely with robust error handling
 try:
     from src.data_loader import DataLoader
     from src.embeddings import EmbeddingGenerator
     from src.retriever import HybridRetriever
 except ImportError as e:
-    st.error(f"Failed to import modules: {e}")
-    st.stop()
+    # Streamlit Cloud may run from different context, try alternative imports
+    try:
+        from data_loader import DataLoader
+        from embeddings import EmbeddingGenerator
+        from retriever import HybridRetriever
+    except ImportError:
+        st.error(f"Failed to import modules: {e}")
+        st.stop()
 
 # Initialize session state
 @st.cache_resource

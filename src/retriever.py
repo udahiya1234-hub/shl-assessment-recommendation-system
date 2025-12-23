@@ -21,10 +21,16 @@ except ImportError:
     raise
 
 # Handle imports for both direct and package execution
+# Use absolute import strategy compatible with Streamlit Cloud
 try:
-    from src.embeddings import EmbeddingGenerator
-except ImportError:
     from embeddings import EmbeddingGenerator
+except ImportError:
+    try:
+        from src.embeddings import EmbeddingGenerator
+    except ImportError:
+        raise ImportError(
+            "Could not import EmbeddingGenerator. Ensure src/ is in sys.path"
+        )
 
 logger = logging.getLogger(__name__)
 
